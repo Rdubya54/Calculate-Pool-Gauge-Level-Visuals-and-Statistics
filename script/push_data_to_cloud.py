@@ -7,7 +7,6 @@ import os
 
 ###############################inputs##################################################
 path_to_private_key='C:\Users\Ryan Wortmann\Desktop\Watefowl_tool_Python\Duck_Creek_BB_1\waterfowltool-firebase-adminsdk-cdwex-65c95dee9f.json'
-path_to_json='C:\Users\Wortmr\OneDrive - Missouri Department of Conservation\Waterfowl_Wetland_Data_Management\output_jpegs9\BK_LEECH_BB_2\data.json'
 path_to_folder_of_images='C:\Users\Wortmr\OneDrive - Missouri Department of Conservation\Waterfowl_Wetland_Data_Management\output_jpegs9\BK_LEECH_BB_2\BK_LEECH_BB_2'
 
 ##########################################################################################
@@ -38,6 +37,9 @@ for image_name in os.listdir(path_to_folder_of_images):
 ##################################################################################################                  
 
 ################################write json to cloud (no longer needs to be run becuase we are only storing images in firebase and no data)#################################
+##
+##path_to_json='C:\Users\Wortmr\OneDrive - Missouri Department of Conservation\Waterfowl_Wetland_Data_Management\output_jpegs9\BK_LEECH_BB_2\data.json'
+
 #point to json here
 ##with open(path_to_json) as data_file:
 ##  data = json.load(data_file)

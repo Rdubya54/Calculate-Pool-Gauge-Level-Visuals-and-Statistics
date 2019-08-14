@@ -24,6 +24,8 @@ outputfolder=arcpy.GetParameterAsText(9)
 food_plots=arcpy.GetParameterAsText(10)
 food_plots_field=arcpy.GetParameterAsText(11)
 
+#changes format of lists so that they work with SQL when trying to select only features
+#that are in a list
 def convert_list(listt):
         #remove blanks from export list
         listt=[x for x in listt if x != [[]]]
@@ -37,10 +39,7 @@ def convert_list(listt):
 #this function is used for identifying areas that while below the gauge level, will not be flooded due
 #to other higher topography from allowing water to actually reach the area
 def find_extraneous_polys(polygons,near_ref,counter,prev_adj_polygon_count):
-
-##    arcpy.AddMessage(str(polygons))
-##    arcpy.AddMessage(str(near_ref))
-##    
+    
     #calculate distance of polygons to current wcs
     arcpy.Near_analysis(polygons,near_ref)
 
@@ -66,16 +65,11 @@ def find_extraneous_polys(polygons,near_ref,counter,prev_adj_polygon_count):
 
     #counter number of polys identifed as adj
     adj_polygon_count=arcpy.management.GetCount(iso_polys)[0]
-##    arcpy.AddMessage("counter:"+str(counter))
-##    arcpy.AddMessage("prev adj"+str(prev_adj_polygon_count))
-##    arcpy.AddMessage("adj"+str(adj_polygon_count))
 
     #check to see if this is the same as previous number of polys in adj polys feature class.
     #if it is the same it means no more new adj polys are out there to be found and we can
     #end the recursion process
     if int(adj_polygon_count)==int(prev_adj_polygon_count):
-        #return number of times we recurred
-##        arcpy.AddMessage("ending")
         return counter
     
     else:
@@ -168,15 +162,8 @@ maximum_elev=raster.maximum
 
 #get OBJECTID field (necessary for being able to select wcs's individually
 oid_fieldname = arcpy.ListFields(wcs,"","OID")[0].name
-wcs_fields=[oid_fieldname,wcs_name_field,"valid"]
+wcs_fields=[oid_fieldname,wcs_name_field]
 
-with arcpy.da.SearchCursor(wcs,(wcs_fields)) as cursor3:
-
-        for row in cursor3:
-
-                ##arcpy.AddMessage(('{}{}['+food_plots_field +']{}{}').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>"))
-                arcpy.AddMessage("<CLR red = '255'><FNT size = '14'>"+row[1]+"</FNT></CLR>")
-                ##arcpy.AddMessage(('{}{}'+[food_plots_field] +'{}{}').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>"))
 
 #create dicts for collecting data that will later be turned into a json at the end of script
 ca_dict={}
@@ -232,7 +219,6 @@ with arcpy.da.SearchCursor(wcs,(wcs_fields)) as cursor3:
 
         #set gauge level to minimum elevation 
         gaugelevel=round(float(minimum_elev),2)
-        gaugelevel=maximum_elev-0.01
 
         #isolate current water control structure
         current_wcs=arcpy.MakeFeatureLayer_management(daylight_points,"selected_Wecs",oid_fieldname+"="+str(row[0]))
@@ -602,10 +588,6 @@ with arcpy.da.SearchCursor(wcs,(wcs_fields)) as cursor3:
             arcpy.mapping.UpdateLayer(df, wcs_layer,wcs_symbology_layer, True)
             arcpy.mapping.AddLayer(df, wcs_layer, "TOP")
             arcpy.AddMessage(" LAYER IS "+str(wcs_name_field))
-##            layers=arcpy.mapping.ListLayers(mxd,wcs_layer)[0]
-##            for lyr in layers.labelClasses:
-##                lyr.showClassLabels=True   
-##            layers.showLabels=True
 
             #add crop layer to mxd (if present)
             if (food_plots):
@@ -615,34 +597,42 @@ with arcpy.da.SearchCursor(wcs,(wcs_fields)) as cursor3:
 
                 arcpy.mapping.UpdateLayer(df, plots_layer,plots_symbology_layer, True)
                 arcpy.mapping.AddLayer(df, plots_layer, "TOP")
-                layers=arcpy.mapping.ListLayers(mxd)
-                for lyr in layers:
-                     if lyr.supports("LABELCLASSES"):
-                             arcpy.AddMessage("labeling:"+str(lyr.name))
-                             if lyr.name in LayerList:
-                                     arcpy.AddMessage("labeling2:"+str(lyr.name))
-                                     if (lyr.name==plots_layer.name):
-                                                lyr.showClassLabels=True
-                                                lyr.showLabels=True
-##                                                food_plots_field="["+food_plots_field+"]"
-##                                                arcpy.AddMessage(('"{}{}'+food_plots_field +'{}{}"').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>"))
-##                                                arcpy.AddMessage(food_plots_field)
-##                                                lyr.labelClasses[0].expression =('"{}{}'+food_plots_field+'{}{}"').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>")
-##                                                lyr.labelClasses[0].expression =('"<CLR red = ''255''><FNT size = ''14''>[Crop]</FNT></CLR>"')
-##                                                lyr.labelClasses[0].expression =('"{}{}'+[food_plots_field]+'{}{}"').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>")
-                                                lyr.labelClasses[0].expression ="[Crop]"
-                                     elif (lyr.name==wcs_layer.name):
-                                             lyr.showClassLabels=True
-                                             lyr.showLabels=True
-                                             arcpy.AddMessage("<CLR red = '255'><FNT size = '14'>[Stuc_Name]</FNT></CLR>")
-##                                            arcpy.AddMessage(('"{}{}'+wcs_name_field +'{}{}"').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>"))
-##                                             arcpy.AddMessage(wcs_name_field)
-##                                             lyr.labelClasses[0].expression =('"{}{}'+wcs_name_field+'{}{}"').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>")
-##                                             lyr.labelClasses[0].expression =('"<CLR red = "255"><FNT size = "14">[Stuc_Name]</FNT></CLR>"')
-                                             lyr.labelClasses[0].expression =('"{}{}[Stuc_Name]{}{}"').format("<CLR red = '255'>","<FNT size = '14'>","</FNT>","</CLR>")
-##                                             lyr.labelClasses[0].expression ="[Stuc_Name]"
-                                             
-##                layers.showLabels=True
+
+            else:
+                LayerList=[wcs_layer.name]
+
+            #add labels to wcs and food plot layers (if present)
+            layers=arcpy.mapping.ListLayers(mxd)
+            for lyr in layers:
+                 if lyr.supports("LABELCLASSES"):
+                     arcpy.AddMessage("labeling:"+str(lyr.name))
+                     if lyr.name in LayerList:
+                         arcpy.AddMessage("labeling2:"+str(lyr.name))
+
+                         if (food_plots):
+
+                                 if (lyr.name==plots_layer.name):
+                                        lyr.showClassLabels=True
+                                        lyr.showLabels=True
+                                        fp="["+food_plots_field+"]"
+                                        lyr.labelClasses[0].expression=fp
+                                 elif (lyr.name==wcs_layer.name):
+                                        lyr.showClassLabels=True
+                                        lyr.showLabels=True
+                                        wcs_name_f="["+wcs_name_field+"]"
+                                        arcpy.AddMessage(wcs_name_field)
+                                        lyr.labelClasses[0].expression=wcs_name_f
+
+                         else:
+                                 if (lyr.name==wcs_layer.name):
+                                        lyr.showClassLabels=True
+                                        lyr.showLabels=True
+                                        wcs_name_f="["+wcs_name_field+"]"
+                                        arcpy.AddMessage(wcs_name_field)
+                                        lyr.labelClasses[0].expression=wcs_name_f
+
+                         
+
             arcpy.RefreshActiveView()  
             arcpy.RefreshTOC()
 
@@ -725,9 +715,3 @@ ca_dict[CA]=unit_dict
 output_file=os.path.join(data_folder,"data.json")
 with open(output_file, 'w') as outfile:
     JSON.dump(ca_dict, outfile)
-
-##layers=arcpy.mapping.ListLayers(mxd,"BB_2_WCS")[0]
-##for lyr in layers.labelClasses:
-##        lyr.showClassLabels=True   
-##layers.showLabels=True
-##arcpy.RefreshActiveView()
